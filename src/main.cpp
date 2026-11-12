@@ -9,7 +9,7 @@ static uintmax_t calculate_file_size(const filesystem::path& file) {
     return file_size;
 }
 
-static int calculate_line_count(const filesystem::path& file_path) {
+static std::uintmax_t calculate_line_count(const filesystem::path& file_path) {
     ifstream file(file_path);
     if (!file.is_open()) {
         cerr << "Error, file could not be opened";
@@ -24,7 +24,7 @@ static int calculate_line_count(const filesystem::path& file_path) {
     return line_count;
 }
 
-static int calculate_word_count(const filesystem::path& file_path) {
+static std::uintmax_t calculate_word_count(const filesystem::path& file_path) {
     ifstream file(file_path);
     if (!file.is_open()) {
         cerr << "Error, file could not be opened.";
