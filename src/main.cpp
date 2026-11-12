@@ -56,6 +56,25 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
+        if (argv[1] and strcmp(argv[1], "-m") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
+            // Char count
+            ifstream file(argv[2]);
+            if (!file.is_open()) {
+                cerr << "Error, file could not be opened.";
+                return 1;
+            }
+            char ch{};
+            int char_count{0};
+            while (file.get(ch)) {
+                ++char_count;
+            }
+
+            file.close();
+            cout  << char_count << " " << argv[2] <<  "\n";
+            return 0;
+
+        }
+
     }else {
         cout << "Please add required command line arguments";
     }
