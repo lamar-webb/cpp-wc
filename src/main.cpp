@@ -9,32 +9,33 @@ uintmax_t calculate_file_size(const filesystem::path file) {
     return file_size;
 }
 
+static int calculate_line_count(const filesystem::path& file_path) {
+    ifstream file(file_path);
+    if (!file.is_open()) {
+        cerr << "Error, file could not be opened";
+        return 1;
+    }
+    string line;
+    int line_count{0};
+    while (getline(file, line)) {
+        ++line_count;
+    }
+    file.close();
+    return line_count;
+}
 int main(int argc, char* argv[]) {
     if (argc > 2) {
-        // file size
         if (argv[1] and strcmp(argv[1], "-c") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
             uintmax_t size = calculate_file_size(argv[2]);
             cout << size << " " << argv[2] << "\n";
             return 0;
         }
         if (argv[1] and strcmp(argv[1], "-l") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
-            // line count
-            ifstream file(argv[2]);
-            if (!file.is_open()) {
-                cerr << "Error, file could not be opened";
-                return 1;
-            }
-            string line;
-            int line_count{0};
-            while (getline(file, line)) {
-                ++line_count;
-            }
+            int line_count = calculate_line_count(argv[2]);
             cout << line_count << " " << argv[2] << "\n";
-            file.close();
             return 0;
         }
         if (argv[1] and strcmp(argv[1], "-w") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
-            // word count
             ifstream file(argv[2]);
             if (!file.is_open()) {
                 cerr << "Error, file could not be opened.";
