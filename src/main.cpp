@@ -50,6 +50,22 @@ static std::uintmax_t calculate_word_count(const filesystem::path& file_path) {
     file.close();
 }
 
+static uintmax_t calculate_character_count(const filesystem::path& file_path) {
+    ifstream file(file_path);
+    if (!file.is_open()) {
+        cerr << "Error, file could not be opened.";
+        return 1;
+    }
+    char ch{};
+    int char_count{0};
+    while (file.get(ch)) {
+        ++char_count;
+    }
+
+    file.close();
+    return char_count;
+}
+
 int main(int argc, char* argv[]) {
     if (argc > 2) {
         if (argv[1] and strcmp(argv[1], "-c") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
@@ -58,33 +74,20 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         if (argv[1] and strcmp(argv[1], "-l") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
-            int line_count = calculate_line_count(argv[2]);
+            const uintmax_t line_count = calculate_line_count(argv[2]);
             cout << line_count << " " << argv[2] << "\n";
             return 0;
         }
         if (argv[1] and strcmp(argv[1], "-w") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
-            int word_count = calculate_word_count(argv[2]);
+            const uintmax_t word_count = calculate_word_count(argv[2]);
             cout << word_count << " " << argv[2] << "\n";
             return 0;
         }
 
         if (argv[1] and strcmp(argv[1], "-m") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
-            // Char count
-            ifstream file(argv[2]);
-            if (!file.is_open()) {
-                cerr << "Error, file could not be opened.";
-                return 1;
-            }
-            char ch{};
-            int char_count{0};
-            while (file.get(ch)) {
-                ++char_count;
-            }
-
-            file.close();
+            uintmax_t char_count = calculate_character_count(argv[2]);
             cout  << char_count << " " << argv[2] <<  "\n";
             return 0;
-
         }
 
     }else {
