@@ -1,11 +1,20 @@
+using namespace std;
 #include <iostream>
+#include <fstream>
+#include <filesystem>
+#include <string>
 
 int main(int argc, char* argv[]) {
 
-    std::cout << "Argument count: " << argc << "\n";
+    if (argc > 2) {
+        if (argv[1] and strcmp(argv[1], "-c") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
+            uintmax_t file_size = filesystem::file_size(argv[2]);
+            cout << file_size << " " << argv[2] << "\n";
+        }
 
-    for (int i{0}; i < argc; i++) {
-        std::cout << "Arg [" << i << "] ->" << argv[i] << "\n";
+    }else {
+        cout << "Please add required command line arguments";
     }
+
 
 }
