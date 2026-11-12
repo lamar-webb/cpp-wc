@@ -3,6 +3,7 @@ using namespace std;
 #include <fstream>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 static uintmax_t calculate_file_size(const filesystem::path& file) {
     uintmax_t file_size =  filesystem::file_size(file);
@@ -66,27 +67,37 @@ static uintmax_t calculate_character_count(const filesystem::path& file_path) {
     return char_count;
 }
 
+static void print_output(const vector<string>& results, const filesystem::path& file_path) {
+    string output;
+    for (size_t i{0}; i < results.size(); ++i) {
+        output.append(results[i]);
+        output.append(" ");
+    }
+    output.append(file_path);
+    cout << output;
+}
+
 int main(int argc, char* argv[]) {
     if (argc > 2) {
         if (argv[1] and strcmp(argv[1], "-c") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
             uintmax_t size = calculate_file_size(argv[2]);
-            cout << size << " " << argv[2] << "\n";
+            print_output({to_string(size)}, argv[2] );
             return 0;
         }
         if (argv[1] and strcmp(argv[1], "-l") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
             const uintmax_t line_count = calculate_line_count(argv[2]);
-            cout << line_count << " " << argv[2] << "\n";
+            print_output({to_string(line_count)}, argv[2] );
             return 0;
         }
         if (argv[1] and strcmp(argv[1], "-w") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
             const uintmax_t word_count = calculate_word_count(argv[2]);
-            cout << word_count << " " << argv[2] << "\n";
+            print_output({to_string(word_count)}, argv[2] );
             return 0;
         }
 
         if (argv[1] and strcmp(argv[1], "-m") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
             uintmax_t char_count = calculate_character_count(argv[2]);
-            cout  << char_count << " " << argv[2] <<  "\n";
+            print_output({to_string(char_count)}, argv[2] );
             return 0;
         }
 
@@ -94,5 +105,3 @@ int main(int argc, char* argv[]) {
         cout << "Please add required command line arguments";
     }
 }
-
-
