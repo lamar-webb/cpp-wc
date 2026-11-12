@@ -4,12 +4,17 @@ using namespace std;
 #include <filesystem>
 #include <string>
 
+uintmax_t calculate_file_size(const filesystem::path file) {
+    uintmax_t file_size =  filesystem::file_size(file);
+    return file_size;
+}
+
 int main(int argc, char* argv[]) {
     if (argc > 2) {
         // file size
         if (argv[1] and strcmp(argv[1], "-c") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
-            uintmax_t file_size = filesystem::file_size(argv[2]);
-            cout << file_size << " " << argv[2] << "\n";
+            uintmax_t size = calculate_file_size(argv[2]);
+            cout << size << " " << argv[2] << "\n";
             return 0;
         }
         if (argv[1] and strcmp(argv[1], "-l") == 0 and argv[2] and filesystem::is_regular_file(argv[2])) {
