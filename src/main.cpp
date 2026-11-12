@@ -4,7 +4,7 @@ using namespace std;
 #include <filesystem>
 #include <string>
 
-uintmax_t calculate_file_size(const filesystem::path file) {
+static uintmax_t calculate_file_size(const filesystem::path& file) {
     uintmax_t file_size =  filesystem::file_size(file);
     return file_size;
 }
