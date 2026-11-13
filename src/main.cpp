@@ -5,6 +5,16 @@ using namespace std;
 #include <string>
 #include <vector>
 
+
+static vector<char> load_stream_data(istream& input_stream) {
+    vector<char> data;
+    char ch;
+    while (input_stream.get(ch)) {
+        data.push_back(ch);
+    }
+    return data;
+}
+
 static uintmax_t calculate_file_size(const filesystem::path& file) {
     uintmax_t file_size =  filesystem::file_size(file);
     return file_size;
@@ -17,7 +27,7 @@ static std::uintmax_t calculate_line_count(const filesystem::path& file_path) {
         return 1;
     }
     string line;
-    int line_count{0};
+    uintmax_t line_count{0};
     while (getline(file, line)) {
         ++line_count;
     }
@@ -32,7 +42,7 @@ static std::uintmax_t calculate_word_count(const filesystem::path& file_path) {
         return 1;
     }
     char ch{};
-    int word_count{0};
+    uintmax_t word_count{0};
     char prev_char{' '};
     while (file.get(ch)) {
         char current_char = ch;
@@ -47,8 +57,8 @@ static std::uintmax_t calculate_word_count(const filesystem::path& file_path) {
             }
         }
     }
-    return word_count;
     file.close();
+    return word_count;
 }
 
 static uintmax_t calculate_character_count(const filesystem::path& file_path) {
@@ -58,7 +68,7 @@ static uintmax_t calculate_character_count(const filesystem::path& file_path) {
         return 1;
     }
     char ch{};
-    int char_count{0};
+    uintmax_t char_count{0};
     while (file.get(ch)) {
         ++char_count;
     }
