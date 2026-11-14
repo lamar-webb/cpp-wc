@@ -4,6 +4,7 @@ using namespace std;
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <filesystem>
 
 enum class Command {
     FILE_SIZE,
@@ -46,7 +47,7 @@ static uintmax_t calculate_word_count(const std::vector<char>& data) {
         if (std::isspace(static_cast<unsigned char>(ch))) {
             prev_char = current_char;
         }else {
-            if (!isspace(prev_char)) {
+            if (!std::isspace(static_cast<unsigned char>(prev_char))) {
                 prev_char = current_char;
             }else {
                 ++word_count;
@@ -121,6 +122,12 @@ static void process_command(Command& command, const vector<char>& data, const fi
 
 int main(int argc, char* argv[]) {
 
+    if (argc > 3) {
+        std::cerr << "cpp_wc: too many arguments\n"
+                  << "Usage: cpp_wc [-c|-l|-w|-m] [file]\n";
+        return 1;
+    }
+
     unordered_map<string, Command> commands = {
         {"-c", Command::FILE_SIZE},
         {"-l", Command::LINE_COUNT},
@@ -132,17 +139,17 @@ int main(int argc, char* argv[]) {
 
     Command command = Command::DEFAULT;
     string file_path;
+
     if (argc >= 2 and commands.count(argv[1])== 1) {
 
         unordered_map<string, Command>::iterator command_iter = commands.find(argv[1]);
         command = command_iter->second;
-
         if (argc > 2) {
             file_path = argv[2];
             ifstream file(file_path, ios::binary); // preserve the original bytes when reading the file.
-            //TODO : make validate file a separate function - will do this in many places
+
             if (!file.is_open()) {
-                cerr << "Error: Could not open file: " << file_path << '\n';
+                cerr << "cpp_wc: could not open file: " << file_path << '\n';
                 return 1;
             }
             vector<char> file_data = load_stream_data(file);
@@ -153,16 +160,20 @@ int main(int argc, char* argv[]) {
         }
     }else{
         if (argc > 1) {
-            file_path = argv[1];
-            ifstream file(file_path, ios::binary); // preserve the original bytes when reading the file.
-            //TODO : make validate file a separate function - will do this in many places
-            if (!file.is_open()) {
-                cerr << "Error: Could not open file: " << file_path << '\n';
+            if (std::filesystem::is_regular_file(argv[1])) {
+                file_path = argv[1];
+                ifstream file(file_path, ios::binary); // preserve the original bytes when reading the file.
+                if (!file.is_open()) {
+                    cerr << "cpp_wc: could not open file: " << file_path << '\n';
+                    return 1;
+                }
+                vector<char> file_data = load_stream_data(file);
+                process_command(command, file_data, file_path);
+            }else {
+                cerr << "cpp_wc: unsupported option or invalid file path: '" << argv[1] << "'\n"
+                    << "Usage: cpp_wc [-c|-l|-w|-m] [file]\n";
                 return 1;
             }
-            vector<char> cin_data = load_stream_data(file);
-            process_command(command, cin_data, file_path);
-
         }else {
             vector<char> cin_data =  load_stream_data(std::cin);
             process_command(command, cin_data, file_path);
