@@ -61,30 +61,11 @@ static uintmax_t calculate_word_count(const std::vector<char>& data) {
 static uintmax_t calculate_character_count(const std::vector<char>& data) {
     uintmax_t char_count{0};
     for (char ch : data) {
-
-        // Convert the char to unsigned char so its value is
-        // always between 0 and 255, rather than potentially negative.
         unsigned char byte = static_cast<unsigned char>(ch);
-
-        // UTF-8 uses between 1 and 4 bytes to represent a character.
-        //
-        // Byte values:
-        //   0–127   = ASCII characters (one byte per character)
-        //   128–191 = Continuation bytes (part of a multibyte character)
-        //   192–244 = Potential starting bytes of multibyte characters
-        //
-        // We only want to count the FIRST byte of each character.
-        //
-        // Therefore:
-        //   byte < 128   -> Count it (ASCII character)
-        //   byte >= 192  -> Count it (potential start of a UTF-8 character)
-        //   128–191      -> Skip it (continuation byte)
-
         if (byte < 128 || byte >= 192) {
             ++char_count;
         }
     }
-
     return char_count;
 }
 
@@ -92,9 +73,14 @@ static void print_output(const vector<string>& results, const filesystem::path& 
     string output;
     for (size_t i{0}; i < results.size(); ++i) {
         output.append(results[i]);
-        output.append(" ");
+        if (i + 1 < results.size()) {
+            output.append(" ");
+        }
     }
-    output.append(file_path);
+    if (!file_path.empty()) {
+        output.append(" ");
+        output.append(file_path);
+    }
     cout << output << "\n";
 }
 
