@@ -5,6 +5,7 @@ using namespace std;
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
+#include <optional>
 
 enum class Command {
     FILE_SIZE,
@@ -14,6 +15,11 @@ enum class Command {
     DEFAULT
 };
 
+struct ParsedArguments {
+    Command command{Command::DEFAULT};
+    string file_path;
+    bool success{true};
+};
 
 static vector<char> load_stream_data(istream& input_stream) {
     vector<char> data;
@@ -85,7 +91,7 @@ static void print_output(const vector<string>& results, const filesystem::path& 
     cout << output << "\n";
 }
 
-static void process_command(Command& command, const vector<char>& data, const filesystem::path& file_path) {
+static void process_command(Command& command, const vector<char> data, const filesystem::path& file_path) {
     switch (command) {
         case Command::FILE_SIZE: {
             uintmax_t file_size = data.size();
@@ -119,64 +125,74 @@ static void process_command(Command& command, const vector<char>& data, const fi
     }
 }
 
-
-int main(int argc, char* argv[]) {
-
-    if (argc > 3) {
-        std::cerr << "cpp_wc: too many arguments\n"
-                  << "Usage: cpp_wc [-c|-l|-w|-m] [file]\n";
-        return 1;
-    }
-
-    unordered_map<string, Command> commands = {
+ParsedArguments parse_arguments(int argc, char* argv[]) {
+    ParsedArguments parsed_arguments;
+    const unordered_map<string, Command> commands = {
         {"-c", Command::FILE_SIZE},
         {"-l", Command::LINE_COUNT},
         {"-w", Command::WORD_COUNT},
-        {"-m", Command::CHAR_COUNT},
-        {"", Command::DEFAULT}
+        {"-m", Command::CHAR_COUNT}
     };
+    for (int i{1}; i < argc; ++i) {
+        string argument = argv[i];
+        unordered_map<string, Command>::const_iterator command_iter = commands.find(argument);
+        if (command_iter != commands.end()) {
+            if (parsed_arguments.command != Command::DEFAULT) {
+                cerr << "cpp_wc: multiple flags are not supported\n"
+                     << "Usage: cpp_wc [-c|-l|-w|-m] [file]\n";
 
-
-    Command command = Command::DEFAULT;
-    string file_path;
-
-    if (argc >= 2 and commands.count(argv[1])== 1) {
-
-        unordered_map<string, Command>::iterator command_iter = commands.find(argv[1]);
-        command = command_iter->second;
-        if (argc > 2) {
-            file_path = argv[2];
-            ifstream file(file_path, ios::binary); // preserve the original bytes when reading the file.
-
-            if (!file.is_open()) {
-                cerr << "cpp_wc: could not open file: " << file_path << '\n';
-                return 1;
+                parsed_arguments.success = false;
+                return parsed_arguments;
             }
-            vector<char> file_data = load_stream_data(file);
-            process_command(command, file_data, file_path);
-        }else{
-            vector<char> cin_data =  load_stream_data(std::cin);
-            process_command(command, cin_data, file_path);
-        }
-    }else{
-        if (argc > 1) {
-            if (std::filesystem::is_regular_file(argv[1])) {
-                file_path = argv[1];
-                ifstream file(file_path, ios::binary); // preserve the original bytes when reading the file.
-                if (!file.is_open()) {
-                    cerr << "cpp_wc: could not open file: " << file_path << '\n';
-                    return 1;
-                }
-                vector<char> file_data = load_stream_data(file);
-                process_command(command, file_data, file_path);
-            }else {
-                cerr << "cpp_wc: unsupported option or invalid file path: '" << argv[1] << "'\n"
-                    << "Usage: cpp_wc [-c|-l|-w|-m] [file]\n";
-                return 1;
+
+            parsed_arguments.command = command_iter->second;
+
+        } else if (!argument.empty() && argument[0] == '-') {
+
+            cerr << "cpp_wc: unsupported option: " << argument << '\n'
+                 << "Usage: cpp_wc [-c|-l|-w|-m] [file]\n";
+
+            parsed_arguments.success = false;
+            return parsed_arguments;
+        } else {
+            if (!parsed_arguments.file_path.empty()) {
+                cerr << "cpp_wc: multiple filenames are not supported\n"
+                     << "Usage: cpp_wc [-c|-l|-w|-m] [file]\n";
+
+                parsed_arguments.success = false;
+                return parsed_arguments;
             }
-        }else {
-            vector<char> cin_data =  load_stream_data(std::cin);
-            process_command(command, cin_data, file_path);
+            parsed_arguments.file_path = argument;
         }
     }
+    return parsed_arguments;
+}
+
+vector<char> load_input(const std::string& file_path) {
+    if (!file_path.empty()) {
+        ifstream file(file_path, ios::binary);
+        if (!file.is_open()) {
+            throw std::runtime_error("cpp_wc: could not open file " + file_path);
+        }
+        return load_stream_data(file);
+
+    }
+    return load_stream_data(std::cin);
+}
+
+int main(int argc, char* argv[]) {
+
+    ParsedArguments parsed_arguments = parse_arguments(argc, argv);
+    if (!parsed_arguments.success) {
+        return 1;
+    }
+
+    try {
+        std::vector<char> data_vector =  load_input(parsed_arguments.file_path);
+        process_command(parsed_arguments.command, data_vector, parsed_arguments.file_path);
+    }catch (const std::runtime_error& e){
+        std::cerr << e.what() << '\n';
+        return 1;
+    }
+
 }
