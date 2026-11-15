@@ -5,7 +5,7 @@ using namespace std;
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
-#include <optional>
+#include <cctype>
 
 enum class Command {
     FILE_SIZE,
@@ -15,65 +15,50 @@ enum class Command {
     DEFAULT
 };
 
+struct Counts {
+    uintmax_t lines{0};
+    uintmax_t words{0};
+    uintmax_t bytes{0};
+    uintmax_t characters{0};
+};
+
 struct ParsedArguments {
     Command command{Command::DEFAULT};
     string file_path;
     bool success{true};
 };
 
-static vector<char> load_stream_data(istream& input_stream) {
-    vector<char> data;
-    char ch;
-    while (input_stream.get(ch)) {
-        data.push_back(ch);
-    }
-    return data;
-}
+Counts calculate_counts(std::istream& input_stream) {
+    Counts counts{};
+    bool is_inside_word = false;
+    char current_char;
+    while (input_stream.get(current_char)) {
 
-static uintmax_t calculate_line_count(const std::vector<char>& data) {
-    uintmax_t line_count{0};
-    uintmax_t i{0};
-    while (i < data.size()) {
-        if (data[i] == '\n') {
-            ++line_count;
+        // count lines
+        if (current_char == '\n') {
+            ++counts.lines;
         }
-        ++i;
-    }
-    return line_count;
-}
+        // count bytes
+        ++counts.bytes;
 
-static uintmax_t calculate_word_count(const std::vector<char>& data) {
-
-    uintmax_t word_count{0};
-    char prev_char{' '};
-    uintmax_t i{0};
-    while (i < data.size()) {
-        char ch = data[i];
-        char current_char = ch;
-        if (std::isspace(static_cast<unsigned char>(ch))) {
-            prev_char = current_char;
-        }else {
-            if (!std::isspace(static_cast<unsigned char>(prev_char))) {
-                prev_char = current_char;
-            }else {
-                ++word_count;
-                prev_char = current_char;
-            }
-        }
-        ++i;
-    }
-    return word_count;
-}
-
-static uintmax_t calculate_character_count(const std::vector<char>& data) {
-    uintmax_t char_count{0};
-    for (char ch : data) {
-        unsigned char byte = static_cast<unsigned char>(ch);
+        // count characters
+        unsigned char byte = static_cast<unsigned char>(current_char);
         if (byte < 128 || byte >= 192) {
-            ++char_count;
+            ++counts.characters;
+        }
+
+        // count words
+        bool is_white_space = std::isspace(static_cast<unsigned char>(current_char)) != 0;
+
+        if (is_white_space) {
+            is_inside_word = false;
+        } else if (!is_inside_word) {
+            ++counts.words;
+            is_inside_word = true;
         }
     }
-    return char_count;
+        return counts;
+
 }
 
 static void print_output(const vector<string>& results, const filesystem::path& file_path) {
@@ -91,34 +76,28 @@ static void print_output(const vector<string>& results, const filesystem::path& 
     cout << output << "\n";
 }
 
-static void process_command(Command& command, const vector<char> data, const filesystem::path& file_path) {
+static void process_command(Command command, istream& input_stream, const filesystem::path& file_path) {
+    Counts counts = calculate_counts(input_stream);
     switch (command) {
         case Command::FILE_SIZE: {
-            uintmax_t file_size = data.size();
-            print_output({to_string(file_size)}, file_path);
+            print_output({to_string(counts.bytes)}, file_path);
             break;
         }
         case Command::CHAR_COUNT: {
-            const uintmax_t char_count = calculate_character_count(data);
-            print_output({to_string(char_count)}, file_path);
+            print_output({to_string(counts.characters)}, file_path);
             break;
         }
         case Command::LINE_COUNT: {
-            const uintmax_t line_count = calculate_line_count(data);
-            print_output({to_string(line_count)}, file_path);
+            print_output({to_string(counts.lines)}, file_path);
             break;
         }
 
         case Command::WORD_COUNT: {
-            const uintmax_t word_count = calculate_word_count(data);
-            print_output({to_string(word_count)}, file_path);
+            print_output({to_string(counts.words)}, file_path);
             break;
         }
         case Command::DEFAULT: {
-            const uintmax_t line_count = calculate_line_count(data);
-            const uintmax_t word_count = calculate_word_count(data);
-            uintmax_t file_size = data.size();
-            print_output({to_string(line_count), to_string(word_count), to_string(file_size)}, file_path);
+            print_output({to_string(counts.lines), to_string(counts.words), to_string(counts.bytes)}, file_path);
             break;
         }
 
@@ -168,17 +147,7 @@ ParsedArguments parse_arguments(int argc, char* argv[]) {
     return parsed_arguments;
 }
 
-vector<char> load_input(const std::string& file_path) {
-    if (!file_path.empty()) {
-        ifstream file(file_path, ios::binary);
-        if (!file.is_open()) {
-            throw std::runtime_error("cpp_wc: could not open file " + file_path);
-        }
-        return load_stream_data(file);
 
-    }
-    return load_stream_data(std::cin);
-}
 
 int main(int argc, char* argv[]) {
 
@@ -188,9 +157,27 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        std::vector<char> data_vector =  load_input(parsed_arguments.file_path);
-        process_command(parsed_arguments.command, data_vector, parsed_arguments.file_path);
-    }catch (const std::runtime_error& e){
+        if (!parsed_arguments.file_path.empty()) {
+            std::ifstream file(parsed_arguments.file_path, std::ios::binary);
+
+            if (!file.is_open()) {
+                throw std::runtime_error("Could not open file");
+            }
+
+            process_command(
+                parsed_arguments.command,
+                file,
+                parsed_arguments.file_path
+            );
+        } else {
+            process_command(
+                parsed_arguments.command,
+                std::cin,
+                parsed_arguments.file_path
+            );
+        }
+    }
+    catch (const std::runtime_error& e) {
         std::cerr << e.what() << '\n';
         return 1;
     }
