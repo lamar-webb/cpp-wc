@@ -30,35 +30,37 @@ struct ParsedArguments {
 
 Counts calculate_counts(std::istream& input_stream) {
     Counts counts{};
+    constexpr std::size_t buffer_size = 1024;
+    char buffer[buffer_size];
     bool is_inside_word = false;
-    char current_char;
-    while (input_stream.get(current_char)) {
 
-        // count lines
-        if (current_char == '\n') {
-            ++counts.lines;
+    while (input_stream) {
+        input_stream.read(buffer, buffer_size);
+        std::streamsize bytes_read = input_stream.gcount();
+
+        for (std::streamsize i{0}; i < bytes_read; i++) {
+            // count lines
+            if (buffer[i] == '\n') {
+                ++counts.lines;
+            }
+            // count character
+            if (auto byte = static_cast<unsigned char>(buffer[i]); byte < 128 || byte >= 192) {
+                ++counts.characters;
+            }
+            // count words
+            bool is_white_space = std::isspace(static_cast<unsigned char>(buffer[i])) != 0;
+
+            if (is_white_space) {
+                is_inside_word = false;
+            } else if (!is_inside_word) {
+                ++counts.words;
+                is_inside_word = true;
+            }
         }
         // count bytes
-        ++counts.bytes;
-
-        // count characters
-        unsigned char byte = static_cast<unsigned char>(current_char);
-        if (byte < 128 || byte >= 192) {
-            ++counts.characters;
-        }
-
-        // count words
-        bool is_white_space = std::isspace(static_cast<unsigned char>(current_char)) != 0;
-
-        if (is_white_space) {
-            is_inside_word = false;
-        } else if (!is_inside_word) {
-            ++counts.words;
-            is_inside_word = true;
-        }
+        counts.bytes += bytes_read;
     }
-        return counts;
-
+    return counts;
 }
 
 static void print_output(const vector<string>& results, const filesystem::path& file_path) {
