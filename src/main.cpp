@@ -7,6 +7,10 @@ using namespace std;
 #include <filesystem>
 #include <cctype>
 
+#ifndef BUFFER_SIZE
+#define BUFFER_SIZE 4096
+#endif
+
 enum class Command {
     FILE_SIZE,
     CHAR_COUNT,
@@ -30,7 +34,7 @@ struct ParsedArguments {
 
 Counts calculate_counts(std::istream& input_stream) {
     Counts counts{};
-    constexpr std::size_t buffer_size = 1024;
+    constexpr std::size_t buffer_size = BUFFER_SIZE;
     char buffer[buffer_size];
     bool is_inside_word = false;
 
